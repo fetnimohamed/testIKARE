@@ -1,0 +1,76 @@
+stages:
+  - lint
+  - test
+  - build
+  - deploy
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+
+cache:
+  paths:
+    - .pip-cache/
+
+lint:
+  stage: lint
+  image: python:3.10
+  script:
+    - pip install flake8
+    - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+    - flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+test:
+  stage: test
+  image: python:3.10
+  script:
+    - pip install pytest pytest-cov
+    - pip install -e .
+    - pytest --cov=datetime_event_store --cov-report=xml
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+
+test-matrix:
+  stage: test
+  parallel:
+    matrix:
+      - PYTHON_VERSION: ["3.7", "3.8", "3.9", "3.11"]
+  image: python:$PYTHON_VERSION
+  script:
+    - pip install pytest
+    - pip install -e .
+    - pytest
+
+build:
+  stage: build
+  image: python:3.10
+  script:
+    - pip install build
+    - python -m build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+
+deploy-testpypi:
+  stage: deploy
+  image: python:3.10
+  script:
+    - pip install twine
+    - TWINE_PASSWORD=${TESTPYPI_TOKEN} TWINE_USERNAME=__token__ python -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+  only:
+    - main
+    - master
+  when: manual # Activation manuelle pour plus de sécurité
+
+deploy-pypi:
+  stage: deploy
+  image: python:3.10
+  script:
+    - pip install twine
+    - TWINE_PASSWORD=${PYPI_TOKEN} TWINE_USERNAME=__token__ python -m twine upload dist/*
+  only:
+    - tags # Seulement pour les tags
+  when: manual # Activation manuelle pour plus de sécurité

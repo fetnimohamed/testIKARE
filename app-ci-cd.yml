@@ -1,0 +1,182 @@
+name: Application CI/CD
+
+on:
+  push:
+    branches: [main, master, dev]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  # Tests du package Python
+  test-package:
+    name: Test Python Package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install package
+        run: |
+          cd datetime_event_store
+          pip install -e .
+          pip install pytest pytest-cov
+
+      - name: Run tests
+        run: |
+          cd datetime_event_store
+          pytest --cov=datetime_event_store
+
+  # Tests de l'API FastAPI
+  test-api:
+    name: Test API
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          cd fastApi
+          pip install -r requirements.txt
+          pip install ../datetime_event_store/
+
+      - name: Run tests
+        run: |
+          cd fastApi
+          pytest --cov=.
+        env:
+          MONGODB_URI: mongodb://localhost:27017/
+          MONGODB_DB_NAME: test_event_store
+          MONGODB_COLLECTION: test_events
+          API_ENV: test
+
+  # Tests du frontend React
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: "**/package-lock.json"
+
+      - name: Install dependencies
+        run: |
+          cd datetime-events-app
+          npm ci
+
+      - name: Run tests
+        run: |
+          cd datetime-events-app
+          npm test -- --coverage
+
+  # Build et tests des images Docker
+  build:
+    name: Build Docker images
+    runs-on: ubuntu-latest
+    needs: [test-package, test-api, test-frontend]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Frontend
+        uses: docker/build-push-action@v4
+        with:
+          context: ./datetime-events-app
+          push: false
+          load: true
+          tags: datetime-events-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build API
+        uses: docker/build-push-action@v4
+        with:
+          context: ./fastApi
+          push: false
+          load: true
+          tags: datetime-events-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test Docker Compose
+        run: |
+          docker-compose -f docker-compose.yml up -d
+          sleep 20
+          curl -s --retry 10 --retry-connrefused http://localhost:8000/
+          docker-compose down
+
+  # Déploiement en production
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Login to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v4
+        with:
+          context: ./datetime-events-app
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/datetime-events-frontend:latest
+
+      - name: Build and push API
+        uses: docker/build-push-action@v4
+        with:
+          context: ./fastApi
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/datetime-events-api:latest
+
+      # Déploiement via SSH ou autre méthode
+      - name: Deploy with SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            cd /path/to/production
+            docker-compose pull
+            docker-compose up -d
+            echo "Deployment completed on $(date)"

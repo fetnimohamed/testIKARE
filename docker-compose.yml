@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # Frontend React
+  frontend:
+    build:
+      context: ./datetime-events-app
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000/api
+    depends_on:
+      - api
+    networks:
+      - app-network
+
+  # Backend FastAPI
+  api:
+    build:
+      context: ./fastApi
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/
+      - MONGODB_DB_NAME=event_store
+      - MONGODB_COLLECTION=events
+      - CORS_ORIGINS=["http://localhost:3000"]
+      - API_ENV=production
+      - DEBUG=False
+    depends_on:
+      - mongodb
+    volumes:
+      - ./datetime_event_store:/app/datetime_event_store
+    networks:
+      - app-network
+
+  # Base de données MongoDB
+  mongodb:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
