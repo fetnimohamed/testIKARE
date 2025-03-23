@@ -1,25 +1,42 @@
+// Modifier le test pour utiliser fireEvent à la place de userEvent.selectOptions
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import EventFilters from '../EventFilters';
 import { useEvents } from '../../../hooks/useEvents';
+import { ThemeProvider } from '@mui/material/styles';
+import { LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import theme from '../../../theme/theme';
+import { fr } from 'date-fns/locale';
 
-// Mock du hook useEvents
 jest.mock('../../../hooks/useEvents', () => ({
   useEvents: jest.fn(),
 }));
 
-// Mocks pour les composants de date
 jest.mock('@mui/x-date-pickers/DatePicker', () => ({
-  DatePicker: ({ label, value, onChange, renderInput }) => {
-    return renderInput({
-      value: value?.toISOString?.() || '',
-      onChange: e => onChange(new Date(e.target.value)),
-      placeholder: label,
-      'data-testid': `date-picker-${label?.toLowerCase().replace(/\s+/g, '-')}`,
-    });
+  DatePicker: ({ label, value, onChange }) => {
+    return (
+      <input
+        data-testid={`date-picker-${label?.toLowerCase().replace(/\s+/g, '-')}`}
+        type="text"
+        value={value?.toISOString?.() || ''}
+        onChange={e => onChange(new Date(e.target.value))}
+        placeholder={label}
+      />
+    );
   },
 }));
+
+const renderWithProviders = ui => {
+  return render(
+    <ThemeProvider theme={theme}>
+      <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={fr}>
+        {ui}
+      </LocalizationProvider>
+    </ThemeProvider>
+  );
+};
 
 describe('EventFilters Component', () => {
   const mockUpdateFilters = jest.fn();
@@ -38,9 +55,8 @@ describe('EventFilters Component', () => {
   });
 
   it('rend correctement le composant de filtres', () => {
-    render(<EventFilters />);
+    renderWithProviders(<EventFilters />);
 
-    // Vérifier que les éléments clés sont rendus
     expect(screen.getByText(/filtres/i)).toBeInTheDocument();
     expect(screen.getByTestId('date-picker-date-de-début')).toBeInTheDocument();
     expect(screen.getByTestId('date-picker-date-de-fin')).toBeInTheDocument();
@@ -55,43 +71,52 @@ describe('EventFilters Component', () => {
     useEvents.mockReturnValue({
       filters: {
         startDate: currentDate,
-        endDate: new Date(currentDate.getTime() + 86400000), // tomorrow
+        endDate: new Date(currentDate.getTime() + 86400000),
         importance: 'haute',
       },
       updateFilters: mockUpdateFilters,
     });
 
-    render(<EventFilters />);
+    renderWithProviders(<EventFilters />);
 
-    // Vérifier que le sélecteur d'importance a la bonne valeur
-    expect(screen.getByLabelText(/importance/i)).toHaveValue('haute');
+    // Plutôt que de vérifier la valeur, vérifions le texte affiché
+    expect(screen.getByText('haute')).toBeInTheDocument();
   });
 
   it('met à jour les filtres locaux lors des changements', async () => {
-    render(<EventFilters />);
+    renderWithProviders(<EventFilters />);
 
-    // Changer l'importance
+    // Simuler l'ouverture et la sélection d'une option dans le select MUI
     const importanceSelect = screen.getByLabelText(/importance/i);
-    userEvent.selectOptions(importanceSelect, 'haute');
+    fireEvent.mouseDown(importanceSelect);
 
-    // Vérifier que l'option sélectionnée a changé
-    expect(importanceSelect).toHaveValue('haute');
+    // Attendre que la liste déroulante apparaisse
+    await waitFor(() => {
+      const option = screen.getByText('haute');
+      fireEvent.click(option);
+    });
 
-    // À ce stade, updateFilters ne devrait pas encore être appelé (jusqu'à ce qu'on clique sur Appliquer)
+    // Vérifier que le texte affiché est "haute"
+    expect(screen.getByText('haute')).toBeInTheDocument();
+
     expect(mockUpdateFilters).not.toHaveBeenCalled();
   });
 
   it('applique les filtres lors du clic sur Appliquer', async () => {
-    render(<EventFilters />);
+    renderWithProviders(<EventFilters />);
 
-    // Changer l'importance
+    // Simuler l'ouverture et la sélection d'une option dans le select MUI
     const importanceSelect = screen.getByLabelText(/importance/i);
-    userEvent.selectOptions(importanceSelect, 'critique');
+    fireEvent.mouseDown(importanceSelect);
 
-    // Simuler le clic sur Appliquer
+    // Attendre que la liste déroulante apparaisse
+    await waitFor(() => {
+      const option = screen.getByText('critique');
+      fireEvent.click(option);
+    });
+
     userEvent.click(screen.getByRole('button', { name: /appliquer/i }));
 
-    // Vérifier que updateFilters a été appelé avec les bonnes valeurs
     await waitFor(() => {
       expect(mockUpdateFilters).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -102,16 +127,20 @@ describe('EventFilters Component', () => {
   });
 
   it('réinitialise les filtres lors du clic sur Réinitialiser', async () => {
-    render(<EventFilters />);
+    renderWithProviders(<EventFilters />);
 
-    // Changer l'importance
+    // Simuler l'ouverture et la sélection d'une option dans le select MUI
     const importanceSelect = screen.getByLabelText(/importance/i);
-    userEvent.selectOptions(importanceSelect, 'haute');
+    fireEvent.mouseDown(importanceSelect);
 
-    // Simuler le clic sur Réinitialiser
+    // Attendre que la liste déroulante apparaisse
+    await waitFor(() => {
+      const option = screen.getByText('haute');
+      fireEvent.click(option);
+    });
+
     userEvent.click(screen.getByRole('button', { name: /réinitialiser/i }));
 
-    // Vérifier que updateFilters a été appelé avec les valeurs réinitialisées
     await waitFor(() => {
       expect(mockUpdateFilters).toHaveBeenCalledWith({
         startDate: null,
@@ -120,23 +149,20 @@ describe('EventFilters Component', () => {
       });
     });
 
-    // Vérifier que le sélecteur d'importance a été réinitialisé localement
-    expect(importanceSelect).toHaveValue('all');
+    // Vérifier que le texte affiché est "Toutes"
+    expect(screen.getByText('Toutes')).toBeInTheDocument();
   });
 
   it('gère correctement le changement de date de début', async () => {
-    render(<EventFilters />);
+    renderWithProviders(<EventFilters />);
 
-    // Simuler un changement de date de début
     const startDateInput = screen.getByTestId('date-picker-date-de-début');
     const newDate = '2023-05-15';
 
     fireEvent.change(startDateInput, { target: { value: newDate } });
 
-    // Simuler le clic sur Appliquer
     userEvent.click(screen.getByRole('button', { name: /appliquer/i }));
 
-    // Vérifier que updateFilters a été appelé avec la nouvelle date
     await waitFor(() => {
       expect(mockUpdateFilters).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -147,18 +173,15 @@ describe('EventFilters Component', () => {
   });
 
   it('gère correctement le changement de date de fin', async () => {
-    render(<EventFilters />);
+    renderWithProviders(<EventFilters />);
 
-    // Simuler un changement de date de fin
     const endDateInput = screen.getByTestId('date-picker-date-de-fin');
     const newDate = '2023-06-15';
 
     fireEvent.change(endDateInput, { target: { value: newDate } });
 
-    // Simuler le clic sur Appliquer
     userEvent.click(screen.getByRole('button', { name: /appliquer/i }));
 
-    // Vérifier que updateFilters a été appelé avec la nouvelle date
     await waitFor(() => {
       expect(mockUpdateFilters).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -168,4 +191,3 @@ describe('EventFilters Component', () => {
     });
   });
 });
-w

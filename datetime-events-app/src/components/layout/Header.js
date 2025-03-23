@@ -1,6 +1,6 @@
-import React from "react";
-import { AppBar, Toolbar, Typography, Button, Box } from "@mui/material";
-import { Event as EventIcon } from "@mui/icons-material";
+import React from 'react';
+import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
+import { Event as EventIcon } from '@mui/icons-material';
 
 const Header = () => {
   return (
@@ -8,10 +8,12 @@ const Header = () => {
       <Toolbar>
         <EventIcon sx={{ mr: 2 }} />
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          Gestionnaire d'Événements
+          Gestionnaire d&apos;Événements
         </Typography>
         <Box>
-          <Button color="inherit">À propos</Button>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            Test Technique Fetni Mohamed
+          </Typography>
         </Box>
       </Toolbar>
     </AppBar>

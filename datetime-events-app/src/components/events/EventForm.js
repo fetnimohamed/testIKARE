@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -13,43 +13,39 @@ import {
   MenuItem,
   Stack,
   Alert,
-} from "@mui/material";
-import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
-import { useEvents } from "../../hooks/useEvents";
+} from '@mui/material';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { useEvents } from '../../hooks/useEvents';
 
 const EventForm = ({ open, onClose }) => {
-  const { selectedEvent, createEvent, updateEvent, loading, error } =
-    useEvents();
+  const { selectedEvent, createEvent, updateEvent, loading, error } = useEvents();
 
-  // État du formulaire
   const [formData, setFormData] = useState({
-    title: "",
+    title: '',
     date: new Date(),
-    description: "",
-    importance: "normale",
+    description: '',
+    importance: 'normale',
   });
 
   const [formErrors, setFormErrors] = useState({});
   const [submitError, setSubmitError] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
 
-  // Réinitialiser le formulaire quand selectedEvent change
   useEffect(() => {
     if (selectedEvent) {
       setFormData({
         title: selectedEvent.title,
         date: new Date(selectedEvent.date),
-        description: selectedEvent.description || "",
-        importance: selectedEvent.importance || "normale",
+        description: selectedEvent.description || '',
+        importance: selectedEvent.importance || 'normale',
       });
       setIsEditMode(true);
     } else {
-      // Réinitialiser pour la création
       setFormData({
-        title: "",
+        title: '',
         date: new Date(),
-        description: "",
-        importance: "normale",
+        description: '',
+        importance: 'normale',
       });
       setIsEditMode(false);
     }
@@ -57,56 +53,51 @@ const EventForm = ({ open, onClose }) => {
     setSubmitError(null);
   }, [selectedEvent, open]);
 
-  // Gestion des changements dans les champs
-  const handleChange = (e) => {
+  const handleChange = e => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: value,
     }));
 
-    // Réinitialiser l'erreur pour ce champ
     if (formErrors[name]) {
-      setFormErrors((prev) => ({
+      setFormErrors(prev => ({
         ...prev,
         [name]: null,
       }));
     }
   };
 
-  // Gestion du changement de date
-  const handleDateChange = (newDate) => {
-    setFormData((prev) => ({
+  const handleDateChange = newDate => {
+    setFormData(prev => ({
       ...prev,
       date: newDate,
     }));
 
     if (formErrors.date) {
-      setFormErrors((prev) => ({
+      setFormErrors(prev => ({
         ...prev,
         date: null,
       }));
     }
   };
 
-  // Validation du formulaire
   const validateForm = () => {
     const errors = {};
 
     if (!formData.title.trim()) {
-      errors.title = "Le titre est requis";
+      errors.title = 'Le titre est requis';
     }
 
     if (!formData.date) {
-      errors.date = "La date est requise";
+      errors.date = 'La date est requise';
     }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // Soumission du formulaire
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
     setSubmitError(null);
 
@@ -122,17 +113,13 @@ const EventForm = ({ open, onClose }) => {
       }
       onClose();
     } catch (err) {
-      setSubmitError(
-        err.message || "Une erreur est survenue lors de l'enregistrement"
-      );
+      setSubmitError(err.message || "Une erreur est survenue lors de l'enregistrement");
     }
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {isEditMode ? "Modifier l'événement" : "Créer un nouvel événement"}
-      </DialogTitle>
+      <DialogTitle>{isEditMode ? "Modifier l'événement" : 'Créer un nouvel événement'}</DialogTitle>
 
       <form onSubmit={handleSubmit}>
         <DialogContent>
@@ -155,7 +142,7 @@ const EventForm = ({ open, onClose }) => {
               label="Date et heure"
               value={formData.date}
               onChange={handleDateChange}
-              renderInput={(params) => (
+              renderInput={params => (
                 <TextField
                   {...params}
                   fullWidth
@@ -201,17 +188,8 @@ const EventForm = ({ open, onClose }) => {
           <Button onClick={onClose} disabled={loading}>
             Annuler
           </Button>
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            disabled={loading}
-          >
-            {loading
-              ? "Enregistrement..."
-              : isEditMode
-              ? "Mettre à jour"
-              : "Créer"}
+          <Button type="submit" variant="contained" color="primary" disabled={loading}>
+            {loading ? 'Enregistrement...' : isEditMode ? 'Mettre à jour' : 'Créer'}
           </Button>
         </DialogActions>
       </form>

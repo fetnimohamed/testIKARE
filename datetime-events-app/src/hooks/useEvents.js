@@ -1,36 +1,33 @@
-import { useState } from "react";
-import { useEventContext, EVENT_ACTIONS } from "../context/EventContext";
-import { eventService } from "../services/eventService";
+import { useState } from 'react';
+import { useEventContext, EVENT_ACTIONS } from '../context/EventContext';
+import { eventService } from '../services/eventService';
 
-// Hook personnalisé pour gérer les opérations CRUD sur les événements
 export const useEvents = () => {
   const { state, dispatch } = useEventContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Récupérer tous les événements
   const fetchEvents = async () => {
     setLoading(true);
     setError(null);
 
     try {
       const events = await eventService.getEvents();
-      console.log("Events:", events);
+      console.log('Events:', events);
       dispatch({
         type: EVENT_ACTIONS.LOAD_EVENTS,
         payload: events,
       });
       return events;
     } catch (err) {
-      setError(err.message || "Erreur lors de la récupération des événements");
+      setError(err.message || 'Erreur lors de la récupération des événements');
       return [];
     } finally {
       setLoading(false);
     }
   };
 
-  // Créer un nouvel événement
-  const createEvent = async (eventData) => {
+  const createEvent = async eventData => {
     setLoading(true);
     setError(null);
 
@@ -49,7 +46,6 @@ export const useEvents = () => {
     }
   };
 
-  // Mettre à jour un événement existant
   const updateEvent = async (id, eventData) => {
     setLoading(true);
     setError(null);
@@ -69,8 +65,7 @@ export const useEvents = () => {
     }
   };
 
-  // Supprimer un événement
-  const deleteEvent = async (id) => {
+  const deleteEvent = async id => {
     setLoading(true);
     setError(null);
 
@@ -89,23 +84,20 @@ export const useEvents = () => {
     }
   };
 
-  // Sélectionner un événement pour édition
-  const selectEvent = (event) => {
+  const selectEvent = event => {
     dispatch({
       type: EVENT_ACTIONS.SET_SELECTED_EVENT,
       payload: event,
     });
   };
 
-  // Mettre à jour les filtres
-  const updateFilters = (filters) => {
+  const updateFilters = filters => {
     dispatch({
       type: EVENT_ACTIONS.SET_FILTER,
       payload: filters,
     });
   };
 
-  // Ajouter des données de démo
   const initializeDemoData = async () => {
     setLoading(true);
     setError(null);
@@ -118,9 +110,7 @@ export const useEvents = () => {
       });
       return demoEvents;
     } catch (err) {
-      setError(
-        err.message || "Erreur lors de l'initialisation des données de démo"
-      );
+      setError(err.message || "Erreur lors de l'initialisation des données de démo");
       throw err;
     } finally {
       setLoading(false);

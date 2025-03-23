@@ -5,13 +5,11 @@ import EventForm from '../EventForm';
 import { EventProvider } from '../../../context/EventContext';
 import * as useEvents from '../../../hooks/useEvents';
 
-// Mock du hook useEvents
 jest.mock('../../../hooks/useEvents', () => ({
   __esModule: true,
   useEvents: jest.fn(),
 }));
 
-// Mocks pour DateTimePicker, qui est un composant complexe
 jest.mock('@mui/x-date-pickers/DateTimePicker', () => ({
   DateTimePicker: ({ label, value, onChange, renderInput }) => {
     return renderInput({
@@ -95,26 +93,22 @@ describe('EventForm Component', () => {
       </EventProvider>
     );
 
-    // Remplir le formulaire
     userEvent.type(screen.getByLabelText(/titre de l'événement/i), 'New Event');
     userEvent.type(screen.getByLabelText(/description/i), 'New description');
 
-    // Soumettre le formulaire
     userEvent.click(screen.getByRole('button', { name: /créer/i }));
 
-    // Vérifier que createEvent a été appelé avec les bonnes données
     await waitFor(() => {
       expect(createEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'New Event',
           description: 'New description',
-          importance: 'normale', // valeur par défaut
+          importance: 'normale',
           date: expect.any(Date),
         })
       );
     });
 
-    // Vérifier que onClose a été appelé
     expect(mockOnClose).toHaveBeenCalled();
   });
 
@@ -142,15 +136,12 @@ describe('EventForm Component', () => {
       </EventProvider>
     );
 
-    // Modifier le titre
     const titleInput = screen.getByLabelText(/titre de l'événement/i);
     userEvent.clear(titleInput);
     userEvent.type(titleInput, 'Updated Event');
 
-    // Soumettre le formulaire
     userEvent.click(screen.getByRole('button', { name: /mettre à jour/i }));
 
-    // Vérifier que updateEvent a été appelé avec les bonnes données
     await waitFor(() => {
       expect(updateEvent).toHaveBeenCalledWith(
         '1',
@@ -163,7 +154,6 @@ describe('EventForm Component', () => {
       );
     });
 
-    // Vérifier que onClose a été appelé
     expect(mockOnClose).toHaveBeenCalled();
   });
 
@@ -174,12 +164,10 @@ describe('EventForm Component', () => {
       </EventProvider>
     );
 
-    // Soumettre le formulaire sans remplir le titre
     const titleInput = screen.getByLabelText(/titre de l'événement/i);
     userEvent.clear(titleInput);
     userEvent.click(screen.getByRole('button', { name: /créer/i }));
 
-    // Vérifier que l'erreur s'affiche
     expect(await screen.findByText(/le titre est requis/i)).toBeInTheDocument();
     expect(mockUseEvents.createEvent).not.toHaveBeenCalled();
   });

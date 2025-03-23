@@ -1,62 +1,83 @@
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+import config from '../config';
+import logger from '../services/logger';
 
 export const eventService = {
-  // Récupérer tous les événements
   async getEvents() {
+    if (config.useTestData) {
+      logger.info('Using test data for getEvents');
+      return getMockEvents().map(normalizeEvent);
+    }
+
     try {
-      const response = await fetch(`${API_URL}/events/`);
+      const response = await fetch(`${config.apiUrl}/events/`);
       const data = (await response.json()).items;
 
-      // Normalisez les données
-      console.log('Data:', data);
+      logger.debug('API response data:', data);
 
       const normalizedEvents = Array.isArray(data)
         ? data.map(normalizeEvent)
         : data.items
-        ? data.items.map(normalizeEvent)
-        : [];
+          ? data.items.map(normalizeEvent)
+          : [];
 
       return normalizedEvents;
     } catch (error) {
-      console.error('Erreur lors de la récupération des événements:', error);
+      logger.error('Erreur lors de la récupération des événements:', error);
       return [];
     }
   },
 
-  // Ajouter un nouvel événement
   async addEvent(eventData) {
-    const response = await fetch(`${API_URL}/events/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: eventData.title,
-        importance: eventData.importance,
-        at: eventData.date.toISOString(),
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error creating event: ${response.statusText}`);
+    if (config.useTestData) {
+      logger.info('Using test data for addEvent');
+      const mockEvent = createMockEvent(eventData);
+      return normalizeEvent(mockEvent);
     }
 
-    const data = await response.json();
+    try {
+      const response = await fetch(`${config.apiUrl}/events/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: eventData.title,
+          importance: eventData.importance,
+          at: eventData.date.toISOString(),
+        }),
+      });
 
-    // Adapter la réponse au format attendu par notre application
-    return {
-      id: data.id,
-      title: data.name,
-      date: data.at,
-      importance: data.importance,
-      createdAt: new Date().toISOString(),
-    };
+      if (!response.ok) {
+        throw new Error(`Error creating event: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      return {
+        id: data.id,
+        title: data.name,
+        date: data.at,
+        importance: data.importance,
+        createdAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      logger.error("Erreur lors de la création d'événement:", error);
+      throw error;
+    }
   },
 
-  // Récupérer un événement spécifique par ID
   async getEventById(id) {
+    if (config.useTestData) {
+      logger.info(`Using test data for getEventById with id: ${id}`);
+      const mockEvent = getMockEventById(id);
+      if (!mockEvent) {
+        throw new Error(`Event with id ${id} not found in test data`);
+      }
+      return normalizeEvent(mockEvent);
+    }
+
     try {
-      const response = await fetch(`${API_URL}/events/${id}`);
+      const response = await fetch(`${config.apiUrl}/events/${id}`);
 
       if (!response.ok) {
         throw new Error(`Event with id ${id} not found`);
@@ -65,15 +86,23 @@ export const eventService = {
       const data = await response.json();
       return normalizeEvent(data);
     } catch (error) {
-      console.error(`Erreur lors de la récupération de l'événement ${id}:`, error);
+      logger.error(`Erreur lors de la récupération de l'événement ${id}:`, error);
       throw error;
     }
   },
 
-  // Mettre à jour un événement existant
   async updateEvent(id, eventData) {
+    if (config.useTestData) {
+      logger.info(`Using test data for updateEvent with id: ${id}`);
+      const updatedMockEvent = updateMockEvent(id, eventData);
+      if (!updatedMockEvent) {
+        throw new Error(`Event with id ${id} not found in test data`);
+      }
+      return normalizeEvent(updatedMockEvent);
+    }
+
     try {
-      const response = await fetch(`${API_URL}/events/${id}`, {
+      const response = await fetch(`${config.apiUrl}/events/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -91,18 +120,25 @@ export const eventService = {
 
       const data = await response.json();
 
-      // Normaliser et retourner la réponse
       return normalizeEvent(data);
     } catch (error) {
-      console.error(`Erreur lors de la mise à jour de l'événement ${id}:`, error);
+      logger.error(`Erreur lors de la mise à jour de l'événement ${id}:`, error);
       throw error;
     }
   },
 
-  // Supprimer un événement
   async deleteEvent(id) {
+    if (config.useTestData) {
+      logger.info(`Using test data for deleteEvent with id: ${id}`);
+      const success = deleteMockEvent(id);
+      if (!success) {
+        throw new Error(`Event with id ${id} not found in test data`);
+      }
+      return { id };
+    }
+
     try {
-      const response = await fetch(`${API_URL}/events/${id}`, {
+      const response = await fetch(`${config.apiUrl}/events/${id}`, {
         method: 'DELETE',
       });
 
@@ -112,20 +148,17 @@ export const eventService = {
 
       return { id };
     } catch (error) {
-      console.error(`Erreur lors de la suppression de l'événement ${id}:`, error);
+      logger.error(`Erreur lors de la suppression de l'événement ${id}:`, error);
       throw error;
     }
   },
 };
 
-// Fonction pour normaliser un événement
 function normalizeEvent(event) {
-  // Extraire les propriétés en utilisant différents noms possibles
   const id = event.id || '';
   const title = event.title || event.name || '';
   const importance = event.importance || 'normale';
 
-  // Traiter la date avec prudence
   let dateObj;
   try {
     if (event.date) {
@@ -136,21 +169,76 @@ function normalizeEvent(event) {
       dateObj = new Date();
     }
 
-    // Vérifier si la date est valide
     if (isNaN(dateObj.getTime())) {
-      console.warn("Date invalide pour l'événement:", event);
-      dateObj = new Date(); // Fallback à la date actuelle
+      logger.warn("Date invalide pour l'événement:", event);
+      dateObj = new Date();
     }
   } catch (e) {
-    console.error('Erreur lors de la conversion de la date:', e);
+    logger.error('Erreur lors de la conversion de la date:', e);
     dateObj = new Date();
   }
 
-  // Retourner un objet événement normalisé
   return {
     id,
     title,
-    date: dateObj.toISOString(), // Format ISO standard
+    date: dateObj.toISOString(),
     importance,
   };
+}
+
+let mockEvents = [
+  {
+    id: '1',
+    name: 'Test Event 1',
+    at: '2023-01-15T10:00:00Z',
+    importance: 'haute',
+  },
+  {
+    id: '2',
+    name: 'Test Event 2',
+    at: '2023-02-20T14:30:00Z',
+    importance: 'normale',
+  },
+];
+
+function getMockEvents() {
+  return [...mockEvents];
+}
+
+function getMockEventById(id) {
+  return mockEvents.find(event => event.id === id);
+}
+
+function createMockEvent(eventData) {
+  const newId = (parseInt(mockEvents[mockEvents.length - 1]?.id || '0') + 1).toString();
+  const newEvent = {
+    id: newId,
+    name: eventData.title,
+    at: eventData.date.toISOString(),
+    importance: eventData.importance,
+  };
+  mockEvents.push(newEvent);
+  return newEvent;
+}
+
+function updateMockEvent(id, eventData) {
+  const index = mockEvents.findIndex(event => event.id === id);
+  if (index === -1) return null;
+
+  mockEvents[index] = {
+    ...mockEvents[index],
+    name: eventData.title,
+    at: eventData.date ? eventData.date.toISOString() : mockEvents[index].at,
+    importance: eventData.importance,
+  };
+
+  return mockEvents[index];
+}
+
+function deleteMockEvent(id) {
+  const index = mockEvents.findIndex(event => event.id === id);
+  if (index === -1) return false;
+
+  mockEvents.splice(index, 1);
+  return true;
 }

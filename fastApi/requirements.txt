@@ -1,6 +1,5 @@
-fastapi==0.95.1
+fastapi>=0.100.0,<0.112.0
 uvicorn==0.22.0
-pydantic==1.10.7
 python-dateutil==2.8.2
 python-dotenv==1.0.0
 pymongo==4.3.3
@@ -9,3 +8,6 @@ pytest-cov==4.1.0
 httpx==0.24.1
 black==23.3.0
 flake8==6.0.0
+Ikare-event-store==0.1.0
+pydantic==2.3.0
+pydantic-settings==2.0.3

@@ -7,7 +7,6 @@ on:
     branches: [main, master]
 
 jobs:
-  # Tests du package Python
   test-package:
     name: Test Python Package
     runs-on: ubuntu-latest
@@ -33,7 +32,6 @@ jobs:
           cd datetime_event_store
           pytest --cov=datetime_event_store
 
-  # Tests de l'API FastAPI
   test-api:
     name: Test API
     runs-on: ubuntu-latest
@@ -70,7 +68,6 @@ jobs:
           MONGODB_COLLECTION: test_events
           API_ENV: test
 
-  # Tests du frontend React
   test-frontend:
     name: Test Frontend
     runs-on: ubuntu-latest
@@ -96,7 +93,6 @@ jobs:
           cd datetime-events-app
           npm test -- --coverage
 
-  # Build et tests des images Docker
   build:
     name: Build Docker images
     runs-on: ubuntu-latest
@@ -136,7 +132,6 @@ jobs:
           curl -s --retry 10 --retry-connrefused http://localhost:8000/
           docker-compose down
 
-  # Déploiement en production
   deploy:
     name: Deploy to Production
     runs-on: ubuntu-latest
@@ -168,7 +163,6 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/datetime-events-api:latest
 
-      # Déploiement via SSH ou autre méthode
       - name: Deploy with SSH
         uses: appleboy/ssh-action@master
         with:

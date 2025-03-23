@@ -1,9 +1,8 @@
-import { renderHook, act } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react';
 import { useEvents } from '../useEvents';
 import { useEventContext, EVENT_ACTIONS } from '../../context/EventContext';
 import { eventService } from '../../services/eventService';
 
-// Mock des dépendances
 jest.mock('../../context/EventContext', () => ({
   useEventContext: jest.fn(),
   EVENT_ACTIONS: {
@@ -17,11 +16,13 @@ jest.mock('../../context/EventContext', () => ({
 }));
 
 jest.mock('../../services/eventService', () => ({
-  getEvents: jest.fn(),
-  addEvent: jest.fn(),
-  updateEvent: jest.fn(),
-  deleteEvent: jest.fn(),
-  initWithDemoData: jest.fn(),
+  eventService: {
+    getEvents: jest.fn(),
+    addEvent: jest.fn(),
+    updateEvent: jest.fn(),
+    deleteEvent: jest.fn(),
+    initWithDemoData: jest.fn(),
+  },
 }));
 
 describe('useEvents hook', () => {
@@ -87,7 +88,7 @@ describe('useEvents hook', () => {
       });
 
       expect(result.current.error).toBeTruthy();
-      expect(result.current.error).toContain('récupération des événements');
+      expect(result.current.error).toContain('Failed to fetch events');
     });
   });
 
@@ -130,7 +131,7 @@ describe('useEvents hook', () => {
 
       expect(thrownError).toBe(error);
       expect(result.current.error).toBeTruthy();
-      expect(result.current.error).toContain('création');
+      expect(result.current.error).toContain('Failed to create event');
     });
   });
 
@@ -175,7 +176,7 @@ describe('useEvents hook', () => {
 
       expect(thrownError).toBe(error);
       expect(result.current.error).toBeTruthy();
-      expect(result.current.error).toContain('mise à jour');
+      expect(result.current.error).toContain('Failed to update event');
     });
   });
 
@@ -217,7 +218,7 @@ describe('useEvents hook', () => {
 
       expect(thrownError).toBe(error);
       expect(result.current.error).toBeTruthy();
-      expect(result.current.error).toContain('suppression');
+      expect(result.current.error).toContain('Failed to delete event');
     });
   });
 
@@ -304,7 +305,7 @@ describe('useEvents hook', () => {
 
       expect(thrownError).toBe(error);
       expect(result.current.error).toBeTruthy();
-      expect(result.current.error).toContain('initialisation des données de démo');
+      expect(result.current.error).toContain('Failed to initialize demo data');
     });
   });
 });

@@ -1,10 +1,10 @@
-import React, { useState } from "react";
-import { Container, Box, Typography, Button, Paper, Fab } from "@mui/material";
-import { Add as AddIcon } from "@mui/icons-material";
-import EventList from "./EventList";
-import EventForm from "./EventForm";
-import EventFilters from "./EventFilters";
-import { useEvents } from "../../hooks/useEvents";
+import React, { useState } from 'react';
+import { Container, Box, Typography, Button, Paper, Fab } from '@mui/material';
+import { Add as AddIcon } from '@mui/icons-material';
+import EventList from './EventList';
+import EventForm from './EventForm';
+import EventFilters from './EventFilters';
+import { useEvents } from '../../hooks/useEvents';
 
 const EventListPage = () => {
   const [formOpen, setFormOpen] = useState(false);
@@ -20,15 +20,11 @@ const EventListPage = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4" component="h1">
           Événements
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAddClick}
-        >
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddClick}>
           Nouvel événement
         </Button>
       </Box>
@@ -44,7 +40,7 @@ const EventListPage = () => {
       <Fab
         color="primary"
         aria-label="add"
-        sx={{ position: "fixed", bottom: 16, right: 16 }}
+        sx={{ position: 'fixed', bottom: 16, right: 16 }}
         onClick={handleAddClick}
       >
         <AddIcon />

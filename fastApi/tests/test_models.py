@@ -1,4 +1,3 @@
-import pytest
 from datetime import datetime
 from models.event import EventBase, EventCreate, EventUpdate, EventInDB, EventResponse
 
@@ -23,7 +22,6 @@ def test_event_create_model():
     assert isinstance(event.at, datetime)
 
 def test_event_update_model():
-    # Test avec des champs partiels
     event_data = {
         "name": "Updated Event"
     }
@@ -32,7 +30,6 @@ def test_event_update_model():
     assert event.importance is None
     assert event.at is None
     
-    # Test avec tous les champs
     event_data_full = {
         "name": "Updated Event",
         "importance": "critique",
@@ -79,7 +76,6 @@ def test_event_response_model():
     assert event.created_at == current_time
     assert event.updated_at is None
     
-    # Vérifier que le modèle peut être converti en dict
     event_dict = event.dict()
     assert isinstance(event_dict, dict)
     assert event_dict["id"] == "123"

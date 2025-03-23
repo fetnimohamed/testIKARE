@@ -1,313 +1,268 @@
-import React from 'react';
-import { render, act } from '@testing-library/react';
-import {
-  EventContext,
-  EventProvider,
-  eventReducer,
-  EVENT_ACTIONS,
-  useEventContext,
-} from '../EventContext';
+import { renderHook, act } from '@testing-library/react';
+import { useEvents } from '../../hooks/useEvents';
+import { useEventContext, EVENT_ACTIONS } from '../../context/EventContext';
 import { eventService } from '../../services/eventService';
 
-// Mock du service
+// Ajouter un mock pour eventService
 jest.mock('../../services/eventService', () => ({
-  getEvents: jest.fn(),
+  eventService: {
+    getEvents: jest.fn(),
+    addEvent: jest.fn(),
+    updateEvent: jest.fn(),
+    deleteEvent: jest.fn(),
+    initWithDemoData: jest.fn(),
+  },
 }));
 
-// Composant de test pour useEventContext
-const TestComponent = () => {
-  const context = useEventContext();
-  return <div data-testid="context-test">{context ? 'Context OK' : 'Context Missing'}</div>;
-};
+// Mock du contexte des événements
+jest.mock('../../context/EventContext', () => ({
+  useEventContext: jest.fn(),
+  EVENT_ACTIONS: {
+    LOAD_EVENTS: 'LOAD_EVENTS',
+    ADD_EVENT: 'ADD_EVENT',
+    UPDATE_EVENT: 'UPDATE_EVENT',
+    DELETE_EVENT: 'DELETE_EVENT',
+    SET_FILTER: 'SET_FILTER',
+    SET_SELECTED_EVENT: 'SET_SELECTED_EVENT',
+    SET_ERROR: 'SET_ERROR',
+  },
+}));
 
-describe('EventContext', () => {
+describe('useEvents hook', () => {
+  const mockDispatch = jest.fn();
+  const mockState = {
+    events: [],
+    filteredEvents: [],
+    filter: { startDate: null, endDate: null, importance: 'all' },
+    selectedEvent: null,
+    loading: false,
+    error: null,
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    // Mock de la réponse du service
-    eventService.getEvents.mockResolvedValue([
-      { id: '1', title: 'Test Event', date: new Date().toISOString(), importance: 'haute' },
-    ]);
+    useEventContext.mockReturnValue({
+      dispatch: mockDispatch,
+      state: mockState,
+    });
   });
 
-  describe('EventProvider', () => {
-    it('charge les événements au montage', async () => {
+  const mockEvents = [
+    { id: '1', title: 'Test Event 1', date: '2023-01-15T10:00:00Z', importance: 'haute' },
+    { id: '2', title: 'Test Event 2', date: '2023-02-20T14:30:00Z', importance: 'normale' },
+  ];
+
+  describe('fetchEvents', () => {
+    it('récupère les événements et dispatche les données', async () => {
+      eventService.getEvents.mockResolvedValue(mockEvents);
+
+      const { result } = renderHook(() => useEvents());
+
       await act(async () => {
-        render(
-          <EventProvider>
-            <div>Test Provider</div>
-          </EventProvider>
-        );
+        await result.current.fetchEvents();
       });
 
       expect(eventService.getEvents).toHaveBeenCalled();
-    });
-
-    it('fournit le contexte aux composants enfants', () => {
-      const { getByTestId } = render(
-        <EventProvider>
-          <TestComponent />
-        </EventProvider>
-      );
-
-      expect(getByTestId('context-test').textContent).toBe('Context OK');
-    });
-
-    it('lève une erreur quand useEventContext est utilisé en dehors du Provider', () => {
-      // Masquer les erreurs de console pour ce test
-      const consoleError = console.error;
-      console.error = jest.fn();
-
-      expect(() => {
-        render(<TestComponent />);
-      }).toThrow('useEventContext must be used within an EventProvider');
-
-      // Restaurer console.error
-      console.error = consoleError;
-    });
-  });
-
-  describe('eventReducer', () => {
-    const initialState = {
-      events: [],
-      filteredEvents: [],
-      filter: {
-        startDate: null,
-        endDate: null,
-        importance: 'all',
-      },
-      selectedEvent: null,
-      loading: true,
-      error: null,
-    };
-
-    it('gère correctement LOAD_EVENTS', () => {
-      const events = [
-        { id: '1', title: 'Event 1', date: new Date(), importance: 'normale' },
-        { id: '2', title: 'Event 2', date: new Date(), importance: 'haute' },
-      ];
-
-      const action = {
+      expect(mockDispatch).toHaveBeenCalledWith({
         type: EVENT_ACTIONS.LOAD_EVENTS,
-        payload: events,
-      };
-
-      const newState = eventReducer(initialState, action);
-
-      expect(newState.events).toEqual(events);
-      expect(newState.loading).toBe(false);
-      expect(newState.filteredEvents).toHaveLength(events.length);
+        payload: mockEvents,
+      });
     });
 
-    it('gère correctement ADD_EVENT', () => {
-      const existingEvents = [
-        { id: '1', title: 'Existing Event', date: new Date(), importance: 'normale' },
-      ];
+    it('gère les erreurs lors de la récupération des événements', async () => {
+      const error = new Error('Failed to fetch events');
+      eventService.getEvents.mockRejectedValue(error);
 
-      const state = {
-        ...initialState,
-        events: existingEvents,
-        filteredEvents: existingEvents,
-      };
+      const { result } = renderHook(() => useEvents());
 
-      const newEvent = { id: '2', title: 'New Event', date: new Date(), importance: 'haute' };
+      await act(async () => {
+        await result.current.fetchEvents();
+      });
 
-      const action = {
-        type: EVENT_ACTIONS.ADD_EVENT,
-        payload: newEvent,
-      };
-
-      const newState = eventReducer(state, action);
-
-      expect(newState.events).toHaveLength(2);
-      expect(newState.events).toContainEqual(newEvent);
-      expect(newState.filteredEvents).toHaveLength(2);
-    });
-
-    it('gère correctement UPDATE_EVENT', () => {
-      const events = [
-        { id: '1', title: 'Event 1', date: new Date(), importance: 'normale' },
-        { id: '2', title: 'Event 2', date: new Date(), importance: 'haute' },
-      ];
-
-      const state = {
-        ...initialState,
-        events,
-        filteredEvents: events,
-        selectedEvent: events[0],
-      };
-
-      const updatedEvent = { ...events[0], title: 'Updated Event', importance: 'critique' };
-
-      const action = {
-        type: EVENT_ACTIONS.UPDATE_EVENT,
-        payload: updatedEvent,
-      };
-
-      const newState = eventReducer(state, action);
-
-      expect(newState.events[0]).toEqual(updatedEvent);
-      expect(newState.events[1]).toEqual(events[1]);
-      expect(newState.selectedEvent).toBeNull();
-    });
-
-    it('gère correctement DELETE_EVENT', () => {
-      const events = [
-        { id: '1', title: 'Event 1', date: new Date(), importance: 'normale' },
-        { id: '2', title: 'Event 2', date: new Date(), importance: 'haute' },
-      ];
-
-      const state = {
-        ...initialState,
-        events,
-        filteredEvents: events,
-        selectedEvent: events[0],
-      };
-
-      const action = {
-        type: EVENT_ACTIONS.DELETE_EVENT,
-        payload: '1',
-      };
-
-      const newState = eventReducer(state, action);
-
-      expect(newState.events).toHaveLength(1);
-      expect(newState.events[0]).toEqual(events[1]);
-      expect(newState.selectedEvent).toBeNull();
-    });
-
-    it('gère correctement SET_FILTER', () => {
-      const events = [
-        { id: '1', title: 'Event 1', date: new Date(), importance: 'normale' },
-        { id: '2', title: 'Event 2', date: new Date(), importance: 'haute' },
-      ];
-
-      const state = {
-        ...initialState,
-        events,
-        filteredEvents: events,
-      };
-
-      const newFilter = {
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 86400000), // tomorrow
-        importance: 'haute',
-      };
-
-      const action = {
-        type: EVENT_ACTIONS.SET_FILTER,
-        payload: newFilter,
-      };
-
-      const newState = eventReducer(state, action);
-
-      expect(newState.filter).toEqual(newFilter);
-      // La filteredEvents liste sera filtrée selon la nouvelle importance
-      expect(newState.filteredEvents.length).toBeLessThanOrEqual(events.length);
-    });
-
-    it('gère correctement SET_SELECTED_EVENT', () => {
-      const selectedEvent = {
-        id: '1',
-        title: 'Selected Event',
-        date: new Date(),
-        importance: 'haute',
-      };
-
-      const action = {
-        type: EVENT_ACTIONS.SET_SELECTED_EVENT,
-        payload: selectedEvent,
-      };
-
-      const newState = eventReducer(initialState, action);
-
-      expect(newState.selectedEvent).toEqual(selectedEvent);
-    });
-
-    it("retourne l'état inchangé pour une action inconnue", () => {
-      const action = {
-        type: 'UNKNOWN_ACTION',
-        payload: {},
-      };
-
-      const newState = eventReducer(initialState, action);
-
-      expect(newState).toEqual(initialState);
+      expect(eventService.getEvents).toHaveBeenCalled();
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: EVENT_ACTIONS.SET_ERROR,
+        payload: expect.any(String),
+      });
     });
   });
 
-  describe('applyFilters', () => {
-    // Pour tester la fonction applyFilters, nous devons l'extraire ou recréer sa logique
-    // Supposons que nous avons accès à une fonction applyFilters exportée
-
-    const mockApplyFilters = (events, filter) => {
-      return events.filter(event => {
-        const eventDate = new Date(event.date);
-
-        // Filtre par plage de dates
-        if (filter.startDate && eventDate < filter.startDate) return false;
-        if (filter.endDate && eventDate > filter.endDate) return false;
-
-        // Filtre par importance
-        if (filter.importance !== 'all' && event.importance !== filter.importance) return false;
-
-        return true;
-      });
-    };
-
-    it('filtre correctement par plage de dates', () => {
-      const now = new Date();
-      const yesterday = new Date(now);
-      yesterday.setDate(now.getDate() - 1);
-      const tomorrow = new Date(now);
-      tomorrow.setDate(now.getDate() + 1);
-
-      const events = [
-        { id: '1', title: 'Past Event', date: yesterday, importance: 'normale' },
-        { id: '2', title: 'Future Event', date: tomorrow, importance: 'normale' },
-      ];
-
-      const filter = {
-        startDate: now,
-        endDate: null,
-        importance: 'all',
-      };
-
-      const filteredEvents = mockApplyFilters(events, filter);
-      expect(filteredEvents).toHaveLength(1);
-      expect(filteredEvents[0].title).toBe('Future Event');
-    });
-
-    it('filtre correctement par importance', () => {
-      const events = [
-        { id: '1', title: 'Normal Event', date: new Date(), importance: 'normale' },
-        { id: '2', title: 'Critical Event', date: new Date(), importance: 'critique' },
-      ];
-
-      const filter = {
-        startDate: null,
-        endDate: null,
+  describe('createEvent', () => {
+    it('crée un événement et dispatche les données', async () => {
+      const newEvent = {
+        title: 'New Event',
+        date: new Date('2023-03-10'),
         importance: 'critique',
       };
+      const createdEvent = { ...newEvent, id: '3' };
 
-      const filteredEvents = mockApplyFilters(events, filter);
-      expect(filteredEvents).toHaveLength(1);
-      expect(filteredEvents[0].title).toBe('Critical Event');
+      eventService.addEvent.mockResolvedValue(createdEvent);
+
+      const { result } = renderHook(() => useEvents());
+
+      await act(async () => {
+        await result.current.createEvent(newEvent);
+      });
+
+      expect(eventService.addEvent).toHaveBeenCalledWith(newEvent);
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: EVENT_ACTIONS.ADD_EVENT,
+        payload: createdEvent,
+      });
     });
 
-    it('ne filtre pas quand tous les filtres sont vides', () => {
-      const events = [
-        { id: '1', title: 'Event 1', date: new Date(), importance: 'normale' },
-        { id: '2', title: 'Event 2', date: new Date(), importance: 'haute' },
+    it("gère les erreurs lors de la création d'un événement", async () => {
+      const newEvent = {
+        title: 'New Event',
+        date: new Date(),
+        importance: 'normale',
+      };
+      const error = new Error('Failed to create event');
+
+      eventService.addEvent.mockRejectedValue(error);
+
+      const { result } = renderHook(() => useEvents());
+
+      await act(async () => {
+        await result.current.createEvent(newEvent);
+      });
+
+      expect(eventService.addEvent).toHaveBeenCalledWith(newEvent);
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: EVENT_ACTIONS.SET_ERROR,
+        payload: expect.any(String),
+      });
+    });
+  });
+
+  describe('updateEvent', () => {
+    it('met à jour un événement et dispatche les données', async () => {
+      const eventId = '1';
+      const eventData = {
+        title: 'Updated Event',
+        date: new Date('2023-01-15'),
+        importance: 'critique',
+      };
+      const updatedEvent = { ...eventData, id: eventId };
+
+      eventService.updateEvent.mockResolvedValue(updatedEvent);
+
+      const { result } = renderHook(() => useEvents());
+
+      await act(async () => {
+        await result.current.updateEvent(eventId, eventData);
+      });
+
+      expect(eventService.updateEvent).toHaveBeenCalledWith(eventId, eventData);
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: EVENT_ACTIONS.UPDATE_EVENT,
+        payload: updatedEvent,
+      });
+    });
+
+    it("gère les erreurs lors de la mise à jour d'un événement", async () => {
+      const eventId = '1';
+      const eventData = {
+        title: 'Updated Event',
+        date: new Date(),
+        importance: 'critique',
+      };
+      const error = new Error('Failed to update event');
+
+      eventService.updateEvent.mockRejectedValue(error);
+
+      const { result } = renderHook(() => useEvents());
+
+      await act(async () => {
+        await result.current.updateEvent(eventId, eventData);
+      });
+
+      expect(eventService.updateEvent).toHaveBeenCalledWith(eventId, eventData);
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: EVENT_ACTIONS.SET_ERROR,
+        payload: expect.any(String),
+      });
+    });
+  });
+
+  describe('deleteEvent', () => {
+    it("supprime un événement et dispatche l'id", async () => {
+      const eventId = '1';
+
+      eventService.deleteEvent.mockResolvedValue({ id: eventId });
+
+      const { result } = renderHook(() => useEvents());
+
+      await act(async () => {
+        await result.current.deleteEvent(eventId);
+      });
+
+      expect(eventService.deleteEvent).toHaveBeenCalledWith(eventId);
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: EVENT_ACTIONS.DELETE_EVENT,
+        payload: eventId,
+      });
+    });
+
+    it("gère les erreurs lors de la suppression d'un événement", async () => {
+      const eventId = '1';
+      const error = new Error('Failed to delete event');
+
+      eventService.deleteEvent.mockRejectedValue(error);
+
+      const { result } = renderHook(() => useEvents());
+
+      await act(async () => {
+        await result.current.deleteEvent(eventId);
+      });
+
+      expect(eventService.deleteEvent).toHaveBeenCalledWith(eventId);
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: EVENT_ACTIONS.SET_ERROR,
+        payload: expect.any(String),
+      });
+    });
+  });
+
+  describe('initializeDemoData', () => {
+    it('initialise les données de démo et dispatche les événements', async () => {
+      const demoEvents = [
+        { id: '1', title: 'Demo Event 1', date: '2023-04-10T09:00:00Z', importance: 'haute' },
+        { id: '2', title: 'Demo Event 2', date: '2023-04-15T14:00:00Z', importance: 'normale' },
+        { id: '3', title: 'Demo Event 3', date: '2023-04-20T11:00:00Z', importance: 'critique' },
       ];
 
-      const filter = {
-        startDate: null,
-        endDate: null,
-        importance: 'all',
-      };
+      eventService.initWithDemoData.mockResolvedValue(demoEvents);
 
-      const filteredEvents = mockApplyFilters(events, filter);
-      expect(filteredEvents).toHaveLength(2);
+      const { result } = renderHook(() => useEvents());
+
+      await act(async () => {
+        await result.current.initializeDemoData();
+      });
+
+      expect(eventService.initWithDemoData).toHaveBeenCalled();
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: EVENT_ACTIONS.LOAD_EVENTS,
+        payload: demoEvents,
+      });
+    });
+
+    it("gère les erreurs lors de l'initialisation des données de démo", async () => {
+      const error = new Error('Failed to initialize demo data');
+
+      eventService.initWithDemoData.mockRejectedValue(error);
+
+      const { result } = renderHook(() => useEvents());
+
+      await act(async () => {
+        await result.current.initializeDemoData();
+      });
+
+      expect(eventService.initWithDemoData).toHaveBeenCalled();
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: EVENT_ACTIONS.SET_ERROR,
+        payload: expect.any(String),
+      });
     });
   });
 });

@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import {
   ListItem,
   ListItemText,
@@ -8,14 +8,14 @@ import {
   Stack,
   Divider,
   Paper,
-} from "@mui/material";
-import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+} from '@mui/material';
+import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 const EventItem = ({ event, onEdit, onDelete, importanceColor }) => {
   return (
-    <Paper sx={{ mb: 2, overflow: "hidden" }}>
+    <Paper sx={{ mb: 2, overflow: 'hidden' }}>
       <ListItem
         secondaryAction={
           <Stack direction="row" spacing={1}>
@@ -30,9 +30,9 @@ const EventItem = ({ event, onEdit, onDelete, importanceColor }) => {
         sx={{
           borderLeft: 4,
           borderColor: `${importanceColor}.main`,
-          transition: "all 0.2s",
-          "&:hover": {
-            backgroundColor: "rgba(0, 0, 0, 0.04)",
+          transition: 'all 0.2s',
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.04)',
           },
         }}
       >
@@ -45,14 +45,14 @@ const EventItem = ({ event, onEdit, onDelete, importanceColor }) => {
           secondary={
             <Stack spacing={1} mt={1}>
               <Typography variant="body2" color="text.secondary">
-                {format(new Date(event.date), "PPPp", { locale: fr })}
+                {format(new Date(event.date), 'PPPp', { locale: fr })}
               </Typography>
 
               <Chip
                 label={event.importance}
                 size="small"
                 color={importanceColor}
-                sx={{ width: "fit-content" }}
+                sx={{ width: 'fit-content' }}
               />
 
               {event.description && (
@@ -61,11 +61,11 @@ const EventItem = ({ event, onEdit, onDelete, importanceColor }) => {
                   color="text.secondary"
                   sx={{
                     mt: 1,
-                    display: "-webkit-box",
+                    display: '-webkit-box',
                     WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                   }}
                 >
                   {event.description}

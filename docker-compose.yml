@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # Frontend React
   frontend:
     build:
       context: ./datetime-events-app
@@ -15,7 +14,6 @@ services:
     networks:
       - app-network
 
-  # Backend FastAPI
   api:
     build:
       context: ./fastApi
@@ -36,7 +34,6 @@ services:
     networks:
       - app-network
 
-  # Base de données MongoDB
   mongodb:
     image: mongo:6.0
     ports:

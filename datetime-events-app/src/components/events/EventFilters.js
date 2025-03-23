@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   Box,
   Grid,
@@ -11,13 +11,10 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-} from "@mui/material";
-import {
-  ExpandMore as ExpandMoreIcon,
-  FilterList as FilterIcon,
-} from "@mui/icons-material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { useEvents } from "../../hooks/useEvents";
+} from '@mui/material';
+import { ExpandMore as ExpandMoreIcon, FilterList as FilterIcon } from '@mui/icons-material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { useEvents } from '../../hooks/useEvents';
 
 const EventFilters = () => {
   const { filters, updateFilters } = useEvents();
@@ -25,28 +22,25 @@ const EventFilters = () => {
   const [localFilters, setLocalFilters] = useState({
     startDate: filters.startDate,
     endDate: filters.endDate,
-    importance: filters.importance || "all",
+    importance: filters.importance || 'all',
   });
 
-  // Gérer les changements de filtre
   const handleFilterChange = (name, value) => {
-    setLocalFilters((prev) => ({
+    setLocalFilters(prev => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  // Appliquer les filtres
   const handleApplyFilters = () => {
     updateFilters(localFilters);
   };
 
-  // Réinitialiser les filtres
   const handleResetFilters = () => {
     const resetFilters = {
       startDate: null,
       endDate: null,
-      importance: "all",
+      importance: 'all',
     };
 
     setLocalFilters(resetFilters);
@@ -60,7 +54,7 @@ const EventFilters = () => {
         aria-controls="filter-panel-content"
         id="filter-panel-header"
       >
-        <Box sx={{ display: "flex", alignItems: "center" }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <FilterIcon sx={{ mr: 1 }} />
           <Typography>Filtres</Typography>
         </Box>
@@ -72,10 +66,8 @@ const EventFilters = () => {
             <DatePicker
               label="Date de début"
               value={localFilters.startDate}
-              onChange={(newValue) => handleFilterChange("startDate", newValue)}
-              renderInput={(params) => (
-                <FormControl fullWidth>{params}</FormControl>
-              )}
+              onChange={newValue => handleFilterChange('startDate', newValue)}
+              renderInput={params => <FormControl fullWidth>{params}</FormControl>}
               clearable
             />
           </Grid>
@@ -84,10 +76,8 @@ const EventFilters = () => {
             <DatePicker
               label="Date de fin"
               value={localFilters.endDate}
-              onChange={(newValue) => handleFilterChange("endDate", newValue)}
-              renderInput={(params) => (
-                <FormControl fullWidth>{params}</FormControl>
-              )}
+              onChange={newValue => handleFilterChange('endDate', newValue)}
+              renderInput={params => <FormControl fullWidth>{params}</FormControl>}
               clearable
             />
           </Grid>
@@ -99,9 +89,7 @@ const EventFilters = () => {
                 labelId="importance-filter-label"
                 value={localFilters.importance}
                 label="Importance"
-                onChange={(e) =>
-                  handleFilterChange("importance", e.target.value)
-                }
+                onChange={e => handleFilterChange('importance', e.target.value)}
               >
                 <MenuItem value="all">Toutes</MenuItem>
                 <MenuItem value="basse">Basse</MenuItem>
@@ -113,12 +101,8 @@ const EventFilters = () => {
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleApplyFilters}
-              >
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button variant="contained" color="primary" onClick={handleApplyFilters}>
                 Appliquer
               </Button>
               <Button variant="outlined" onClick={handleResetFilters}>

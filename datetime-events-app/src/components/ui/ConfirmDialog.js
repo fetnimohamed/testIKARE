@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -7,14 +7,14 @@ import {
   DialogActions,
   Button,
   Alert,
-} from "@mui/material";
+} from '@mui/material';
 
 const ConfirmDialog = ({
   open,
   title,
   content,
-  confirmText = "Confirmer",
-  cancelText = "Annuler",
+  confirmText = 'Confirmer',
+  cancelText = 'Annuler',
   onConfirm,
   onCancel,
   error,
@@ -28,9 +28,7 @@ const ConfirmDialog = ({
     >
       <DialogTitle id="confirm-dialog-title">{title}</DialogTitle>
       <DialogContent>
-        <DialogContentText id="confirm-dialog-description">
-          {content}
-        </DialogContentText>
+        <DialogContentText id="confirm-dialog-description">{content}</DialogContentText>
 
         {error && (
           <Alert severity="error" sx={{ mt: 2 }}>
@@ -40,12 +38,7 @@ const ConfirmDialog = ({
       </DialogContent>
       <DialogActions>
         <Button onClick={onCancel}>{cancelText}</Button>
-        <Button
-          onClick={onConfirm}
-          color="primary"
-          variant="contained"
-          autoFocus
-        >
+        <Button onClick={onConfirm} color="primary" variant="contained" autoFocus>
           {confirmText}
         </Button>
       </DialogActions>

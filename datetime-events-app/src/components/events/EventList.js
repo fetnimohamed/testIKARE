@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -8,11 +8,11 @@ import {
   Stack,
   CircularProgress,
   Alert,
-} from "@mui/material";
-import { Add as AddIcon, Refresh as RefreshIcon } from "@mui/icons-material";
-import { useEvents } from "../../hooks/useEvents";
-import EventItem from "./EventItem";
-import ConfirmDialog from "../ui/ConfirmDialog";
+} from '@mui/material';
+import { Add as AddIcon, Refresh as RefreshIcon } from '@mui/icons-material';
+import { useEvents } from '../../hooks/useEvents';
+import EventItem from './EventItem';
+import ConfirmDialog from '../ui/ConfirmDialog';
 
 const EventList = ({ onAdd, onEdit }) => {
   const {
@@ -29,24 +29,20 @@ const EventList = ({ onAdd, onEdit }) => {
   const [eventToDelete, setEventToDelete] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
 
-  // Chargement initial des événements
   useEffect(() => {
     fetchEvents();
   }, []);
 
-  // Gestion de l'édition d'un événement
-  const handleEdit = (event) => {
+  const handleEdit = event => {
     selectEvent(event);
     onEdit();
   };
 
-  // Ouvrir le dialogue de confirmation pour supprimer
-  const handleDeleteClick = (event) => {
+  const handleDeleteClick = event => {
     setEventToDelete(event);
     setDeleteDialogOpen(true);
   };
 
-  // Confirmer et supprimer l'événement
   const handleDeleteConfirm = async () => {
     if (!eventToDelete) return;
 
@@ -56,47 +52,43 @@ const EventList = ({ onAdd, onEdit }) => {
       setEventToDelete(null);
       setDeleteError(null);
     } catch (err) {
-      setDeleteError(err.message || "Erreur lors de la suppression");
+      setDeleteError(err.message || 'Erreur lors de la suppression');
     }
   };
 
-  // Annuler la suppression
   const handleDeleteCancel = () => {
     setDeleteDialogOpen(false);
     setEventToDelete(null);
     setDeleteError(null);
   };
 
-  // Ajouter des données de démo
   const handleAddDemoData = async () => {
     try {
       await initializeDemoData();
     } catch (err) {
-      console.error("Error adding demo data:", err);
+      console.error('Error adding demo data:', err);
     }
   };
 
-  // Déterminer la couleur du chip selon l'importance
-  const getImportanceColor = (importance) => {
+  const getImportanceColor = importance => {
     switch (importance) {
-      case "basse":
-        return "info";
-      case "normale":
-        return "success";
-      case "haute":
-        return "warning";
-      case "critique":
-        return "error";
+      case 'basse':
+        return 'info';
+      case 'normale':
+        return 'success';
+      case 'haute':
+        return 'warning';
+      case 'critique':
+        return 'error';
       default:
-        return "default";
+        return 'default';
     }
   };
 
-  // Rendu du contenu principal
   const renderContent = () => {
     if (loading) {
       return (
-        <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
           <CircularProgress />
         </Box>
       );
@@ -112,16 +104,11 @@ const EventList = ({ onAdd, onEdit }) => {
 
     if (filteredEvents.length === 0) {
       return (
-        <Paper sx={{ p: 3, textAlign: "center" }}>
+        <Paper sx={{ p: 3, textAlign: 'center' }}>
           <Typography variant="body1" color="text.secondary" gutterBottom>
             Aucun événement trouvé.
           </Typography>
-          <Stack
-            direction="row"
-            spacing={2}
-            justifyContent="center"
-            sx={{ mt: 2 }}
-          >
+          <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 2 }}>
             <Button variant="contained" startIcon={<AddIcon />} onClick={onAdd}>
               Créer un événement
             </Button>
@@ -133,7 +120,7 @@ const EventList = ({ onAdd, onEdit }) => {
       );
     }
 
-    return filteredEvents.map((event) => (
+    return filteredEvents.map(event => (
       <EventItem
         key={event.id}
         event={event}
@@ -147,14 +134,8 @@ const EventList = ({ onAdd, onEdit }) => {
   return (
     <Box>
       <Box sx={{ mb: 3 }}>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-        >
-          <Typography variant="h6">
-            {filteredEvents.length} événement(s) trouvé(s)
-          </Typography>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Typography variant="h6">{filteredEvents.length} événement(s) trouvé(s)</Typography>
           <IconButton onClick={fetchEvents} disabled={loading}>
             <RefreshIcon />
           </IconButton>

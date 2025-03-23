@@ -1,9 +1,22 @@
 import { eventService } from '../eventService';
+import config from '../../config';
+import logger from '../../services/logger';
 
-// Mock de fetch global
+jest.mock('../../config', () => ({
+  apiUrl: 'http://localhost:8000/api',
+  useTestData: false,
+  environment: 'test',
+}));
+
+jest.mock('../../services/logger', () => ({
+  error: jest.fn(),
+  warn: jest.fn(),
+  info: jest.fn(),
+  debug: jest.fn(),
+}));
+
 global.fetch = jest.fn();
 
-// Helper pour simuler les réponses de l'API
 function mockFetchResponse(data, status = 200) {
   return Promise.resolve({
     ok: status >= 200 && status < 300,
@@ -16,11 +29,13 @@ function mockFetchResponse(data, status = 200) {
 describe('eventService', () => {
   beforeEach(() => {
     fetch.mockClear();
+    logger.error.mockClear();
+    logger.info.mockClear();
+    logger.debug.mockClear();
   });
 
   describe('getEvents', () => {
     it('récupère et normalise correctement les événements', async () => {
-      // Mock de la réponse API
       const mockEvents = {
         items: [
           { id: '1', name: 'Test Event 1', at: '2023-01-15T10:00:00Z', importance: 'haute' },
@@ -29,35 +44,41 @@ describe('eventService', () => {
       };
       global.fetch.mockImplementationOnce(() => mockFetchResponse(mockEvents));
 
-      // Appel du service
       const result = await eventService.getEvents();
 
-      // Vérification des résultats
-      expect(fetch).toHaveBeenCalledWith('http://localhost:8000/api/events/');
+      expect(fetch).toHaveBeenCalledWith(`${config.apiUrl}/events/`);
       expect(result).toHaveLength(2);
       expect(result[0].title).toBe('Test Event 1');
       expect(result[1].importance).toBe('normale');
-      // Vérification que les dates sont formatées en ISO
       expect(new Date(result[0].date).toISOString()).toBe(result[0].date);
     });
 
     it('gère correctement les erreurs', async () => {
-      // Simuler une erreur réseau
       global.fetch.mockImplementationOnce(() => Promise.reject(new Error('Network error')));
-
-      // Intercepter les log d'erreur pour le test
-      console.error = jest.fn();
 
       const result = await eventService.getEvents();
 
       expect(result).toEqual([]);
-      expect(console.error).toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalled();
+    });
+
+    it('utilise les données de test si useTestData est true', async () => {
+      const originalUseTestData = config.useTestData;
+      config.useTestData = true;
+
+      const result = await eventService.getEvents();
+
+      expect(fetch).not.toHaveBeenCalled();
+      expect(logger.info).toHaveBeenCalledWith('Using test data for getEvents');
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBeGreaterThan(0);
+
+      config.useTestData = originalUseTestData;
     });
   });
 
   describe('addEvent', () => {
     it('envoie correctement un nouvel événement', async () => {
-      // Mock de la réponse API
       const mockResponse = {
         id: '3',
         name: 'New Event',
@@ -66,18 +87,15 @@ describe('eventService', () => {
       };
       global.fetch.mockImplementationOnce(() => mockFetchResponse(mockResponse));
 
-      // Données à envoyer
       const eventData = {
         title: 'New Event',
         date: new Date('2023-03-10T09:00:00Z'),
         importance: 'critique',
       };
 
-      // Appel du service
       const result = await eventService.addEvent(eventData);
 
-      // Vérification des résultats
-      expect(fetch).toHaveBeenCalledWith('http://localhost:8000/api/events/', {
+      expect(fetch).toHaveBeenCalledWith(`${config.apiUrl}/events/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,24 +111,42 @@ describe('eventService', () => {
     });
 
     it('gère les erreurs lors de la création', async () => {
-      // Simuler une erreur HTTP
       global.fetch.mockImplementationOnce(() => mockFetchResponse({ detail: 'Invalid data' }, 400));
 
-      // Données à envoyer
       const eventData = {
         title: 'Bad Event',
         date: new Date(),
         importance: 'normale',
       };
 
-      // Vérifier que l'erreur est bien levée
       await expect(eventService.addEvent(eventData)).rejects.toThrow('Error creating event');
+      expect(logger.error).toHaveBeenCalled();
+    });
+
+    it('utilise les données de test si useTestData est true', async () => {
+      const originalUseTestData = config.useTestData;
+      config.useTestData = true;
+
+      const eventData = {
+        title: 'Test Mock Event',
+        date: new Date('2023-04-15T08:00:00Z'),
+        importance: 'haute',
+      };
+
+      const result = await eventService.addEvent(eventData);
+
+      expect(fetch).not.toHaveBeenCalled();
+      expect(logger.info).toHaveBeenCalledWith('Using test data for addEvent');
+      expect(result.title).toBe('Test Mock Event');
+      expect(result.importance).toBe('haute');
+      expect(result.id).toBeTruthy();
+
+      config.useTestData = originalUseTestData;
     });
   });
 
   describe('updateEvent', () => {
     it('met à jour correctement un événement existant', async () => {
-      // Mock de la réponse API
       const mockResponse = {
         id: '1',
         name: 'Updated Event',
@@ -119,46 +155,88 @@ describe('eventService', () => {
       };
       global.fetch.mockImplementationOnce(() => mockFetchResponse(mockResponse));
 
-      // Données à envoyer
       const eventData = {
         title: 'Updated Event',
         date: new Date('2023-01-15T10:00:00Z'),
         importance: 'critique',
       };
 
-      // Appel du service
       const result = await eventService.updateEvent('1', eventData);
 
-      // Vérification des résultats
-      expect(fetch).toHaveBeenCalledWith('http://localhost:8000/api/events/1', expect.any(Object));
+      expect(fetch).toHaveBeenCalledWith(`${config.apiUrl}/events/1`, expect.any(Object));
       expect(result.title).toBe('Updated Event');
       expect(result.importance).toBe('critique');
+    });
+
+    it('utilise les données de test si useTestData est true', async () => {
+      const originalUseTestData = config.useTestData;
+      config.useTestData = true;
+
+      const addedEvent = await eventService.addEvent({
+        title: 'Event to Update',
+        date: new Date('2023-05-20T10:00:00Z'),
+        importance: 'normale',
+      });
+
+      const updateData = {
+        title: 'Updated Mock Event',
+        date: new Date('2023-05-21T11:00:00Z'),
+        importance: 'haute',
+      };
+
+      const result = await eventService.updateEvent(addedEvent.id, updateData);
+
+      expect(fetch).not.toHaveBeenCalled();
+      expect(logger.info).toHaveBeenCalledWith(
+        `Using test data for updateEvent with id: ${addedEvent.id}`
+      );
+      expect(result.title).toBe('Updated Mock Event');
+      expect(result.importance).toBe('haute');
+
+      config.useTestData = originalUseTestData;
     });
   });
 
   describe('deleteEvent', () => {
     it('supprime correctement un événement', async () => {
-      // Mock de la réponse API (pour une suppression réussie, généralement vide)
       global.fetch.mockImplementationOnce(() => mockFetchResponse({}, 204));
 
-      // Appel du service
       const result = await eventService.deleteEvent('1');
 
-      // Vérification des résultats
-      expect(fetch).toHaveBeenCalledWith('http://localhost:8000/api/events/1', {
+      expect(fetch).toHaveBeenCalledWith(`${config.apiUrl}/events/1`, {
         method: 'DELETE',
       });
       expect(result).toEqual({ id: '1' });
     });
 
     it('gère les erreurs lors de la suppression', async () => {
-      // Simuler une erreur HTTP
       global.fetch.mockImplementationOnce(() =>
         mockFetchResponse({ detail: 'Event not found' }, 404)
       );
 
-      // Vérifier que l'erreur est bien levée
       await expect(eventService.deleteEvent('999')).rejects.toThrow('Error deleting event');
+      expect(logger.error).toHaveBeenCalled();
+    });
+
+    it('utilise les données de test si useTestData est true', async () => {
+      const originalUseTestData = config.useTestData;
+      config.useTestData = true;
+
+      const addedEvent = await eventService.addEvent({
+        title: 'Event to Delete',
+        date: new Date(),
+        importance: 'normale',
+      });
+
+      const result = await eventService.deleteEvent(addedEvent.id);
+
+      expect(fetch).not.toHaveBeenCalled();
+      expect(logger.info).toHaveBeenCalledWith(
+        `Using test data for deleteEvent with id: ${addedEvent.id}`
+      );
+      expect(result).toEqual({ id: addedEvent.id });
+
+      config.useTestData = originalUseTestData;
     });
   });
 });

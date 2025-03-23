@@ -1,11 +1,11 @@
 """
-Configuration du package DatetimeEventStore
+Configuration du package IKAREEventStore
 """
 
 from setuptools import setup, find_packages
 
 setup(
-    name="datetime_event_store",
+    name="Ikare_event_store",
     version="0.1.0",
     packages=find_packages(),
     description="Un package pour stocker et récupérer des événements associés à des dates",

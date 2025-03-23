@@ -85,7 +85,6 @@ class DatetimeEventStore:
         self.db = self.client[db_name]
         self.events_collection = self.db[collection_name]
         
-        # Création d'un index sur le champ 'at' pour des recherches plus rapides
         self.events_collection.create_index("at")
     
     def store_event(self, at: datetime.datetime, name: str, importance: str = "normal") -> Event:
@@ -100,18 +99,14 @@ class DatetimeEventStore:
         Returns:
             Event: L'événement créé avec son ID
         """
-        # Validation du type de 'at'
         if not isinstance(at, datetime.datetime):
             raise TypeError("Le paramètre 'at' doit être une instance de datetime.datetime")
         
-        # Création de l'événement
         event = Event(at, name, importance)
         
-        # Conversion en document et insertion dans MongoDB
         doc = event.to_document()
         result = self.events_collection.insert_one(doc)
         
-        # Mise à jour de l'ID de l'événement
         event.id = str(result.inserted_id)
         
         return event
@@ -127,17 +122,13 @@ class DatetimeEventStore:
         Returns:
             Generator: Générateur d'événements dans la plage spécifiée
         """
-        # Gestion des dates invalides
         if start > end:
             start, end = end, start
             
-        # Requête MongoDB pour trouver les événements dans la plage de dates
         query = {"at": {"$gte": start, "$lte": end}}
         
-        # Tri par date (ordre croissant)
         cursor = self.events_collection.find(query).sort("at", pymongo.ASCENDING)
         
-        # Conversion des documents en objets Event
         for doc in cursor:
             yield Event.from_document(doc)
     
@@ -174,7 +165,6 @@ class DatetimeEventStore:
             Event: L'événement mis à jour ou None si non trouvé
         """
         try:
-            # Préparer les champs à mettre à jour
             update_fields = {}
             if name is not None:
                 update_fields["name"] = name
@@ -184,18 +174,16 @@ class DatetimeEventStore:
                 update_fields["importance"] = importance
             
             if not update_fields:
-                return None  # Rien à mettre à jour
+                return None  
             
-            # Effectuer la mise à jour
             result = self.events_collection.update_one(
                 {"_id": ObjectId(event_id)},
                 {"$set": update_fields}
             )
             
             if result.modified_count == 0:
-                return None  # Aucun document n'a été modifié
+                return None  
             
-            # Récupérer et retourner l'événement mis à jour
             doc = self.events_collection.find_one({"_id": ObjectId(event_id)})
             if doc:
                 return Event.from_document(doc)

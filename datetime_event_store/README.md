@@ -93,7 +93,7 @@ pip install datetime-event-store
 
 ```python
 import datetime
-from datetime_event_store import DatetimeEventStore
+from ikare_event_store import DatetimeEventStore
 
 # Créer une instance
 store = DatetimeEventStore()
